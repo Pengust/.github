@@ -1,13 +1,15 @@
 # Pengust
 
-We are building **Rust OS**: a multiplatform operating system written in
-Rust, for phones first and for tablets, laptops and watches after. It runs on
-mainline Linux and boots straight into our own code: our own initramfs,
-PID 1, service manager and Wayland compositor with a phone shell, and it runs
-Android apps natively, without a container.
+We are building **Rust OS**: an operating system for phones, tablets and PCs.
+It runs on Linux and boots straight into our own code, written in Rust: our
+own initramfs, PID 1, service manager, and a Wayland compositor whose shell
+adapts to the screen it runs on. Android apps run on Android's own
+userspace, built from AOSP, side by side with Rust OS's apps.
 
-The first device is the **Nothing Phone (2)** (Snapdragon 8+ Gen 1). Every
-screenshot below is from that phone, running Rust OS.
+## On the phone
+
+The first device is the **Nothing Phone (2)** (Snapdragon 8+ Gen 1). These
+screenshots are from that phone, running Rust OS.
 
 <table>
   <tr>
@@ -26,60 +28,86 @@ screenshot below is from that phone, running Rust OS.
   </tr>
 </table>
 
+## On a PC
+
+The same shell and apps on a wider screen: home lays out for it, apps open
+as windows, and a mouse and keyboard work as on any desktop. These
+screenshots, and the new Settings, are the shell running in a window on
+Windows (WSL), which is also how we work on the UI without a device.
+
+<table>
+  <tr>
+    <td><img src="screenshots/pc-home.png" width="420" alt="Home on a PC"></td>
+    <td><img src="screenshots/pc-settings.png" width="420" alt="Settings as a window on a PC"></td>
+    <td><img src="screenshots/settings.png" width="140" alt="Settings on a phone"></td>
+  </tr>
+  <tr>
+    <td align="center">Home on a PC</td>
+    <td align="center">Settings, as a window</td>
+    <td align="center">Settings on a phone</td>
+  </tr>
+</table>
+
 ## What is in it
 
 **The shell** is a Wayland compositor built on [Smithay](https://github.com/Smithay/smithay),
-drawn with OpenGL ES on the phone's Adreno GPU:
+drawn with OpenGL ES:
 
-- Lock screen with a large clock; swipe up to unlock
-- Home screen with widgets, a glass dock and app icons on uniform squircles
-- Control Center over real-time blur: Wi-Fi, airplane mode, brightness,
-  toggles and shortcuts
-- Apps open and close with spring animations from their icons; swipe up to go
-  home, pause halfway for the app switcher, flick a card away to close it
-- On-screen keyboard, Wi-Fi networks and password entry
-- Runs GTK and other Wayland apps, and Android apps
+- Lock screen, home with widgets and a glass dock, Control Center over
+  real-time blur, an app switcher, and apps that open from their icons with
+  spring animations
+- On a phone, full-screen apps and swipe gestures; on a tablet or PC, a
+  centred home, a dock sized to its apps, and apps as windows
+- Touch, an on-screen keyboard, a mouse and a keyboard
+- GTK and other Wayland apps, and Android apps
 
-**Android apps run natively.** APKs run on ART directly on the host through
-the [Android Translation Layer](https://gitlab.com/android_translation_layer/android_translation_layer),
-with our fixes for apps that need more of the Android API. The shell routes
-touch and keyboard text to them like any other app. The next step is running
-Android's own framework natively over the kernel's Rust Binder, so every app
-works.
+**Our own apps**, in Rust with GTK 4 and libadwaita: Settings, Phone and
+Messages.
+
+**Android apps run natively.** Android's userspace (ART, the framework and
+its services) is built from AOSP and runs directly on the host, without
+Android's init or a container, over the kernel's Rust Binder. Each Android
+app is a window of the shell's, like any other app.
 
 **Under the shell, everything boots from our code:**
 
-| Piece      | What it does |
-|------------|--------------|
-| `initrd`   | Stage 1: brings up USB networking, finds the root filesystem, starts init |
-| `init`     | PID 1: mounts, reaps, starts the service manager |
-| `svcd`     | Service manager with dependency ordering, per-service logs and a control socket |
-| `powerd`   | Suspends the system whenever nothing keeps it awake |
-| kernel     | Mainline Linux 7.2 with Rust and the Rust Binder driver |
+| Piece | What it does |
+|---|---|
+| `initrd` | Stage 1: brings up USB networking, finds the root filesystem, starts init |
+| `init` | PID 1: mounts, reaps, starts the service manager |
+| `svcd` | Service manager with dependency ordering, per-service logs and a control socket |
+| `powerd` | Suspends the system whenever nothing keeps it awake |
+| kernel | Mainline Linux with Rust and the Rust Binder driver |
 
-**One base OS, many devices.** The base OS knows nothing about a particular
-device. Each device has its own repository with a `device.toml` (kernel,
-boot, display layout) and, where needed, its own services, files and boot
-hooks. Bringing up a new device means writing one of those, not forking the
-OS.
+**One root filesystem, built by our build.** It holds the userland (Alpine
+packages), Rust OS, and Android's partitions and data, so both systems
+share one filesystem.
 
-## Repositories
+**One base OS, many devices.** The base knows nothing about a particular
+device. Each device has a repository with its description, services,
+packages and boot hooks. Today there are two: the Phone (2) and PCs.
+
+## Building
+
+Rust OS is many repositories, checked out together by `repo` from one
+manifest, and built like AOSP:
+
+```sh
+. rustos/envsetup.sh
+lunch nothing_phone2-userdebug
+m
+```
 
 | Repository | |
-|------------|---|
-| [rustos](https://github.com/Pengust/rustos) | The base OS: initramfs, init, service manager, compositor and shell |
-| [device_nothing_phone2](https://github.com/Pengust/device_nothing_phone2) | Nothing Phone (2): device description, services, boot image |
-| [kernel_nothing_pong-rustos](https://github.com/Pengust/kernel_nothing_pong-rustos) | Mainline Linux for the Phone (2) with Rust and Rust Binder |
-| [android_translation_layer](https://github.com/Pengust/android_translation_layer) | Android Translation Layer with our fixes |
+|---|---|
+| `manifest` | The manifest: every repository, and the AOSP projects Rust OS's Android is built from |
+| `rustos` | The base OS: initramfs, init, service manager, compositor and shell, build system |
+| `android` | Android's userspace on Rust OS |
+| `apps_settings`, `apps_phone`, `apps_messages`, `apps_modem`, `apps_notifyd` | Rust OS's apps |
+| `device_nothing_phone2`, `device_generic_pc` | Devices |
+| `kernel_nothing_pong-rustos` | Mainline Linux for the Phone (2) with Rust and Rust Binder |
+| `android_translation_layer` | Android Translation Layer with our fixes |
 
 The repositories are private while the system takes shape.
-
-## Status
-
-Rust OS is early. On the Phone (2) today: boot to the shell in a few seconds,
-touch, the display at 120 Hz with GPU rendering, Wi-Fi, Bluetooth hardware, battery
-and charging, sensors, the modem's remote processors, GTK and Android apps.
-Next: calls and SMS, audio, notifications, our own native apps and the
-native Android framework.
 
 Upstream fixes from this work go to the Linux kernel mailing lists.
