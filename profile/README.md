@@ -106,7 +106,6 @@ m
 | `apps_settings`, `apps_phone`, `apps_messages`, `apps_modem`, `apps_notifyd` | Rust OS's apps |
 | `device_nothing_phone2`, `device_generic_pc` | Devices |
 | `kernel_nothing_pong-rustos` | Mainline Linux for the Phone (2) with Rust and Rust Binder |
-| `android_translation_layer` | Android Translation Layer with our fixes |
 
 The repositories are private while the system takes shape.
 
