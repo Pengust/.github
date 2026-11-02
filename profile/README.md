@@ -30,39 +30,77 @@ screenshots are from that phone, running Rust OS.
 
 ## On a PC
 
-The same shell and apps on a wider screen: home lays out for it, apps open
-as windows, and a mouse and keyboard work as on any desktop. These
-screenshots, and the new Settings, are the shell running in a window on
-Windows (WSL), which is also how we work on the UI without a device.
+The same shell and apps on a PC: a desktop with windows, a menu bar, a dock
+of open apps, Spotlight, Mission Control, Spaces and a Notification Centre,
+under Liquid Glass. The PC image boots Android's userspace too, and Steam
+runs from Flathub. These screenshots are the PC image running in a virtual
+machine.
 
 <table>
   <tr>
-    <td><img src="screenshots/pc-home.png" width="420" alt="Home on a PC"></td>
-    <td><img src="screenshots/pc-settings.png" width="420" alt="Settings as a window on a PC"></td>
-    <td><img src="screenshots/settings.png" width="140" alt="Settings on a phone"></td>
+    <td><img src="screenshots/pc-home.png" width="420" alt="The desktop, with Handoff from the phone in the dock"></td>
+    <td><img src="screenshots/pc-spotlight.png" width="420" alt="Spotlight over an app"></td>
   </tr>
   <tr>
-    <td align="center">Home on a PC</td>
-    <td align="center">Settings, as a window</td>
-    <td align="center">Settings on a phone</td>
+    <td align="center">The desktop (Handoff from the phone at the dock's end)</td>
+    <td align="center">Spotlight, in glass, over an app</td>
   </tr>
 </table>
+
+A tablet can have the desktop too, by touch: its device says so, or the
+user picks it in Settings.
+
+## Continuity
+
+A phone and a PC on the same network act as one. They find each other, pair
+once (both screens show the same code), and talk over TLS, each device known
+by its own certificate. Every part can be turned off in Settings.
+
+- **Clipboard**: copy on one, paste on the other
+- **Notifications**: the phone's show on the PC, and can be answered there
+- **Texts**: the phone's conversations in the PC's Messages, sent through the phone
+- **Files**: sent either way, into Downloads
+- **Handoff**: the app open on the phone waits at the end of the PC's dock
+- **Personal Hotspot**: turned on and joined from the PC's Wi-Fi list
+
+<table>
+  <tr>
+    <td><img src="screenshots/continuity-pair.png" width="200" alt="The phone asked to pair with a PC"></td>
+    <td><img src="screenshots/pc-continuity.png" width="420" alt="Continuity in Settings on the PC"></td>
+    <td><img src="screenshots/pc-notification.png" width="420" alt="A phone's message on the PC's lock screen"></td>
+  </tr>
+  <tr>
+    <td align="center">Pairing, on the phone</td>
+    <td align="center">Continuity in Settings</td>
+    <td align="center">A phone's message on the PC</td>
+  </tr>
+</table>
+
+Next: one mouse and keyboard across the PC, a tablet and the phone
+(Universal Control), the phone's screen and apps in a window on the PC,
+and a partitioning installer for dual boot.
 
 ## What is in it
 
 **The shell** is a Wayland compositor built on [Smithay](https://github.com/Smithay/smithay),
 drawn with OpenGL ES:
 
-- Lock screen, home with widgets and a glass dock, Control Center over
-  real-time blur, an app switcher, and apps that open from their icons with
-  spring animations
+- Lock screen with widgets and Live Activities, an always-on display, home
+  with widgets, Control Center, an app switcher, and apps that open from
+  their icons with spring animations, all in Liquid Glass
 - On a phone, full-screen apps and swipe gestures; on a tablet or PC, a
-  centred home, a dock sized to its apps, and apps as windows
-- Touch, an on-screen keyboard, a mouse and a keyboard
-- GTK and other Wayland apps, and Android apps
+  desktop: windows that snap and tile, a menu bar, a dock of open apps,
+  Spotlight, Mission Control, Spaces, a Notification Centre, screenshots
+  of a region, drag and drop between windows
+- Touch, an on-screen keyboard with suggestions, autocorrect and emoji, a
+  mouse and touchpad gestures, and a keyboard
+- Focus, Night Shift, Screen Time, a screen reader
+- GTK and other Wayland apps, Flatpak apps (Steam), X11 apps through
+  Xwayland, and Android apps
 
-**Our own apps**, in Rust with GTK 4 and libadwaita: Settings, Phone and
-Messages.
+**Our own apps and services**, in Rust with GTK 4 and libadwaita:
+Settings, Phone and Messages, a notification server, and `linkd`, which
+links a user's devices (Continuity).
 
 **Android apps run natively.** Android's userspace (ART, the framework and
 its services) is built from AOSP and runs directly on the host, without
