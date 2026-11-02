@@ -62,23 +62,27 @@ by its own certificate. Every part can be turned off in Settings.
 - **Files**: sent either way, into Downloads
 - **Handoff**: the app open on the phone waits at the end of the PC's dock
 - **Personal Hotspot**: turned on and joined from the PC's Wi-Fi list
+- **Universal Control**: past the edge of the PC's screen, its mouse and
+  keyboard go on to the phone or tablet beside it, and come back the same
+  way
 
 <table>
   <tr>
     <td><img src="screenshots/continuity-pair.png" width="200" alt="The phone asked to pair with a PC"></td>
     <td><img src="screenshots/pc-continuity.png" width="420" alt="Continuity in Settings on the PC"></td>
     <td><img src="screenshots/pc-notification.png" width="420" alt="A phone's message on the PC's lock screen"></td>
+    <td><img src="screenshots/universal-control.png" width="200" alt="The PC's pointer on the phone"></td>
   </tr>
   <tr>
     <td align="center">Pairing, on the phone</td>
     <td align="center">Continuity in Settings</td>
     <td align="center">A phone's message on the PC</td>
+    <td align="center">The PC's pointer on the phone</td>
   </tr>
 </table>
 
-Next: one mouse and keyboard across the PC, a tablet and the phone
-(Universal Control), the phone's screen and apps in a window on the PC,
-and a partitioning installer for dual boot.
+Next: the phone's screen and apps in a window on the PC (its games
+included), and a partitioning installer for dual boot.
 
 ## What is in it
 
@@ -117,9 +121,54 @@ app is a window of the shell's, like any other app.
 | `powerd` | Suspends the system whenever nothing keeps it awake |
 | kernel | Mainline Linux with Rust and the Rust Binder driver |
 
-**One root filesystem, built by our build.** It holds the userland (Alpine
-packages), Rust OS, and Android's partitions and data, so both systems
-share one filesystem.
+## One filesystem
+
+One ext4 filesystem holds the whole system: Rust OS, the userland under it
+(Alpine packages), Android's partitions and both systems' data. On a phone
+it is the `userdata` partition; on a PC, a partition of its own. Our build
+makes it as one image.
+
+| Path | What |
+|---|---|
+| `/usr`, `/etc`, `/lib` | the userland; Rust OS's programs in `/usr/lib/rustos`, its apps in `/usr/bin` |
+| `/usr/lib/rustos/services` | the service manager's units |
+| `/usr/lib/rustos/device.toml` | the device's description |
+| `/system`, `/system_ext`, `/product`, `/vendor`, `/odm` | Android's partitions, as directory trees |
+| `/apex` | Android's APEXes, mounted at boot by its own `apexd` |
+| `/data` | Android's data |
+| `/home/<user>` | the user's own files |
+
+Android's paths are ones a Linux system never uses, so the two share one
+filesystem without stepping on each other: Rust OS sees Android's files
+(its shell shows Android's apps as its own), and Android runs on the same
+kernel and devices.
+
+## Android, natively
+
+Android's userspace (ART, the framework, its services and HALs) is built
+from AOSP source, only what we need of it, and runs directly on Rust OS:
+no container, no virtual machine and no Android init. What Android's init
+would do, Rust OS does:
+
+| Android's | Rust OS's |
+|---|---|
+| init and its `.rc` files | `svcd` units start servicemanager, apexd, logd, netd, zygote and the HALs |
+| system properties | `propd`, in Rust: the property area bionic reads and the property service |
+| Binder | the kernel's Rust Binder driver, on binderfs |
+| wake locks and suspend | Android's suspend service on `powerd`: its wake locks hold the system up |
+| SurfaceFlinger's display | `android-display`: each Android app is a Wayland window of the shell's |
+| notifications | Android's, in the shell's notification server, with the app's icon |
+
+The framework and apps run in Android's own network and cgroup namespaces:
+Android manages its firewall and routing as it expects to, behind Rust OS's
+own connection, Wi-Fi and modem. Android apps install from APKs or a store,
+show in the App Library, and take touch, the mouse and the keyboard.
+
+**Google Mobile Services are integrated:** Play services and the Play Store run on the phone.
+
+<img src="screenshots/play-store.png" width="200" alt="The Play Store on Rust OS">
+
+## Devices
 
 **One base OS, many devices.** The base knows nothing about a particular
 device. Each device has a repository with its description, services,
